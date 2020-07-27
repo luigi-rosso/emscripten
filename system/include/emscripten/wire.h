@@ -64,7 +64,7 @@ namespace emscripten {
         struct LightTypeID {
             static constexpr TYPEID get() {
                 typedef typename Canonicalized<T>::type C;
-                if(has_unbound_type_names || std::is_polymorphic<C>::value) {
+                if(has_unbound_type_names) {
 #if __has_feature(cxx_rtti)
                     return &typeid(T);
 #else
@@ -84,7 +84,7 @@ namespace emscripten {
         template<typename T>
         constexpr TYPEID getLightTypeID(const T& value) {
             typedef typename Canonicalized<T>::type C;
-            if(has_unbound_type_names || std::is_polymorphic<C>::value) {
+            if(has_unbound_type_names) {
 #if __has_feature(cxx_rtti)
                 return &typeid(value);
 #else
