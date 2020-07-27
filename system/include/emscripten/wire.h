@@ -72,8 +72,6 @@ namespace emscripten {
                         "Unbound type names are illegal with RTTI disabled. "
                         "Either add -DEMSCRIPTEN_HAS_UNBOUND_TYPE_NAMES=0 to or remove -fno-rtti "
                         "from the compiler arguments");
-                    static_assert(!std::is_polymorphic<C>::value,
-                        "Canonicalized<T>::type being polymorphic is illegal with RTTI disabled");
 #endif
                 }
 
@@ -92,8 +90,6 @@ namespace emscripten {
                     "Unbound type names are illegal with RTTI disabled. "
                     "Either add -DEMSCRIPTEN_HAS_UNBOUND_TYPE_NAMES=0 to or remove -fno-rtti "
                     "from the compiler arguments");
-                static_assert(!std::is_polymorphic<C>::value,
-                    "Canonicalized<T>::type being polymorphic is illegal with RTTI disabled");
 #endif
             }
             return LightTypeID<T>::get();
