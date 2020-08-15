@@ -895,7 +895,7 @@ function simplifyExpressions(ast) {
               if (correct === 'HEAP32') {
                 define[3] = ['binary', '|', define[3], ['num', 0]];
               } else {
-                define[3] = makeAsmCoercion(define[3], asmPreciseF32 ? ASM_FLOAT : ASM_DOUBLE);
+                define[3] = makeAsmCoercion(define[3], ASM_FLOAT);
               }
               // do we want a simplifybitops on the new values here?
             });
@@ -904,7 +904,7 @@ function simplifyExpressions(ast) {
             });
             var correctType;
             switch(asmData.vars[v]) {
-              case ASM_INT: correctType = asmPreciseF32 ? ASM_FLOAT : ASM_DOUBLE; break;
+              case ASM_INT: correctType = ASM_FLOAT; break;
               case ASM_FLOAT: case ASM_DOUBLE: correctType = ASM_INT; break;
             }
             asmData.vars[v] = correctType;
@@ -4580,7 +4580,7 @@ function minifyGlobals(ast) {
   var minified = {};
   var next = 0;
   function getMinified(name) {
-    if (minified[name]) return minified[name];
+    if (minified.hasOwnProperty(name)) return minified[name];
     ensureMinifiedNames(next);
     return minified[name] = minifiedNames[next++];
   }
@@ -4706,10 +4706,9 @@ function minifyLocals(ast) {
     }
 
     // Traverse and minify all names.
-    if (fun[1] in extraInfo.globals) {
-      fun[1] = extraInfo.globals[fun[1]];
-      assert(fun[1]);
-    }
+    assert(extraInfo.globals.hasOwnProperty(fun[1]));
+    fun[1] = extraInfo.globals[fun[1]];
+    assert(fun[1] && typeof fun[1] === 'string');
     if (fun[2]) {
       for (var i = 0; i < fun[2].length; i++) {
         var minified = getNextMinifiedName();
@@ -5108,7 +5107,8 @@ function safeHeap(ast) {
               return makeAsmCoercion(['call', ['name', 'SAFE_HEAP_LOAD'], [ptr, ['num', 4], ['num', 0]]], ASM_INT);
             }
             case 'HEAPU32': {
-              return makeAsmCoercion(['call', ['name', 'SAFE_HEAP_LOAD'], [ptr, ['num', 4], ['num', 1]]], ASM_INT);
+              // Note that a 32-bit unsigned number should not be changed to a signed one.
+              return makeSignedAsmCoercion(['call', ['name', 'SAFE_HEAP_LOAD'], [ptr, ['num', 4], ['num', 1]]], ASM_INT, ASM_UNSIGNED);
             }
             case 'HEAPF32': {
               return makeAsmCoercion(['call', ['name', 'SAFE_HEAP_LOAD_D'], [ptr, ['num', 4]]], ASM_DOUBLE);
@@ -5232,26 +5232,6 @@ function splitMemory(ast, shell) {
 
 function splitMemoryShell(ast) {
   splitMemory(ast, true);
-}
-
-function optimizeFrounds(ast) {
-  // collapse fround(fround(..)), which can happen due to elimination
-  // also emit f0 instead of fround(0) (except in returns)
-  var inReturn = false;
-  function fix(node) {
-    if (node[0] === 'return') inReturn = true;
-    traverseChildren(node, fix);
-    if (node[0] === 'return') inReturn = false;
-    if (node[0] === 'call' && node[1][0] === 'name' && node[1][1] === 'Math_fround') {
-      var arg = node[2][0];
-      if (arg[0] === 'num') {
-        if (!inReturn && arg[1] === 0) return ['name', 'f0'];
-      } else if (arg[0] === 'call' && arg[1][0] === 'name' && arg[1][1] === 'Math_fround') {
-        return arg;
-      }
-    }
-  }
-  traverseChildren(ast, fix);
 }
 
 // Ensures that if label exists, it is assigned an initial value (to not assume the asm declaration has an effect, which we normally do not)
@@ -5632,7 +5612,7 @@ function removeFuncs(ast) {
 // Passes table
 
 var minifyWhitespace = false, printMetadata = true, asm = false,
-    asmPreciseF32 = false, emitJSON = false, last = false,
+    emitJSON = false, last = false,
     emitAst = true;
 
 var passes = {
@@ -5660,7 +5640,6 @@ var passes = {
   safeHeap: safeHeap,
   splitMemory: splitMemory,
   splitMemoryShell: splitMemoryShell,
-  optimizeFrounds: optimizeFrounds,
   ensureLabelSet: ensureLabelSet,
   findReachable: findReachable,
   dumpCallGraph: dumpCallGraph,
@@ -5672,7 +5651,6 @@ var passes = {
   minifyWhitespace: function() { minifyWhitespace = true },
   noPrintMetadata: function() { printMetadata = false },
   asm: function() { asm = true },
-  asmPreciseF32: function() { asmPreciseF32 = true },
   emitJSON: function() { emitJSON = true },
   receiveJSON: function() { }, // handled in a special way, before passes are run
   last: function() { last = true },

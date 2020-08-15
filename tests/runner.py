@@ -62,8 +62,8 @@ import jsrun
 import parallel_testsuite
 from jsrun import NON_ZERO
 from tools.shared import EM_CONFIG, TEMP_DIR, EMCC, EMXX, DEBUG
-from tools.shared import LLVM_TARGET, ASM_JS_TARGET, EMSCRIPTEN_TEMP_DIR
-from tools.shared import WASM_TARGET, SPIDERMONKEY_ENGINE, WINDOWS
+from tools.shared import LLVM_TARGET, EMSCRIPTEN_TEMP_DIR
+from tools.shared import SPIDERMONKEY_ENGINE, WINDOWS
 from tools.shared import EM_BUILD_VERBOSE
 from tools.shared import asstr, get_canonical_temp_dir, try_delete
 from tools.shared import asbytes, safe_copy, Settings
@@ -161,14 +161,6 @@ def no_wasm_backend(note=''):
 
   def decorated(f):
     return skip_if(f, 'is_wasm_backend', note)
-  return decorated
-
-
-def no_fastcomp(note=''):
-  assert not callable(note)
-
-  def decorated(f):
-    return skip_if(f, 'is_wasm_backend', note, negate=True)
   return decorated
 
 
@@ -310,7 +302,6 @@ else:
     'asm2',
     'asm3',
     'asm2g',
-    'asm2f',
   ]
 
 # The default core test mode, used when none is specified
@@ -599,18 +590,17 @@ class RunnerCore(RunnerMeta('TestCase', (unittest.TestCase,), {})):
     # Recompiling just for dfe in ll_opts is too costly
 
     def fix_target(ll_filename):
-      if LLVM_TARGET == ASM_JS_TARGET:
-         return
       with open(ll_filename) as f:
         contents = f.read()
       if LLVM_TARGET in contents:
         return
+      asmjs_target = 'asmjs-unknown-emscripten'
       asmjs_layout = "e-p:32:32-i64:64-v128:32:128-n32-S128"
       wasm_layout = "e-m:e-p:32:32-i64:64-n32:64-S128"
-      assert(ASM_JS_TARGET in contents)
+      assert(asmjs_target in contents)
       assert(asmjs_layout in contents)
       contents = contents.replace(asmjs_layout, wasm_layout)
-      contents = contents.replace(ASM_JS_TARGET, WASM_TARGET)
+      contents = contents.replace(asmjs_target, LLVM_TARGET)
       with open(ll_filename, 'w') as f:
         f.write(contents)
 
@@ -747,16 +737,6 @@ class RunnerCore(RunnerMeta('TestCase', (unittest.TestCase,), {})):
       # side memory init file, or an empty one in the js
       assert ('/* memory initializer */' not in src) or ('/* memory initializer */ allocate([]' in src)
 
-  def validate_asmjs(self, err):
-    # check for asm.js validation
-    if 'uccessfully compiled asm.js code' in err and 'asm.js link error' not in err:
-      print("[was asm.js'ified]", file=sys.stderr)
-    # check for an asm.js validation error, if we expect one
-    elif 'asm.js' in err and not self.is_wasm() and self.get_setting('ASM_JS') == 1:
-      self.fail("did NOT asm.js'ify: " + err)
-    err = '\n'.join([line for line in err.split('\n') if 'uccessfully compiled asm.js code' not in line])
-    return err
-
   def get_func(self, src, name):
     start = src.index('function ' + name + '(')
     t = start
@@ -808,9 +788,6 @@ class RunnerCore(RunnerMeta('TestCase', (unittest.TestCase,), {})):
     # use files, as PIPE can get too full and hang us
     stdout = self.in_dir('stdout')
     stderr = self.in_dir('stderr')
-    # Make sure that we produced proper line endings to the .js file we are about to run.
-    if not filename.endswith('.wasm'):
-      self.assertEqual(line_endings.check_line_endings(filename), 0)
     error = None
     if EMTEST_VERBOSE:
       print("Running '%s' under '%s'" % (filename, engine))
@@ -822,10 +799,12 @@ class RunnerCore(RunnerMeta('TestCase', (unittest.TestCase,), {})):
     except subprocess.CalledProcessError as e:
       error = e
 
+    # Make sure that we produced proper line endings to the .js file we are about to run.
+    if not filename.endswith('.wasm'):
+      self.assertEqual(line_endings.check_line_endings(filename), 0)
+
     out = open(stdout, 'r').read()
     err = open(stderr, 'r').read()
-    if engine == SPIDERMONKEY_ENGINE and self.get_setting('ASM_JS') == 1:
-      err = self.validate_asmjs(err)
     if output_nicerizer:
       ret = output_nicerizer(out, err)
     else:
