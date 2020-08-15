@@ -4,10 +4,6 @@
  * SPDX-License-Identifier: MIT
  */
 
-#if SEPARATE_ASM && ASSERTIONS && WASM == 0 && MODULARIZE
-if (!({{{ASM_MODULE_NAME}}})) throw 'Must load asm.js Module in to variable {{{ASM_MODULE_NAME}}} before adding compiled output .js script to the DOM';
-#endif
-
 #include "runtime_safe_heap.js"
 
 #if ASSERTIONS
@@ -106,17 +102,7 @@ assert(buffer instanceof SharedArrayBuffer, 'requested a shared WebAssembly.Memo
 #endif
 #endif
 
-var wasmTable = new WebAssembly.Table({
-  'initial': {{{ getQuoted('WASM_TABLE_SIZE') }}},
-#if !ALLOW_TABLE_GROWTH
-#if WASM_BACKEND
-  'maximum': {{{ getQuoted('WASM_TABLE_SIZE') }}} + {{{ RESERVED_FUNCTION_POINTERS }}},
-#else
-  'maximum': {{{ getQuoted('WASM_TABLE_SIZE') }}},
-#endif
-#endif // WASM_BACKEND
-  'element': 'anyfunc'
-});
+#include "runtime_init_table.js"
 
 #else
 

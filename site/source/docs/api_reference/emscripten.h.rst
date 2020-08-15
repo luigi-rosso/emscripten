@@ -492,6 +492,20 @@ Functions
   :rtype: double
   :return: The pixel ratio or 1.0 if not supported.
 
+.. c:function:: char *emscripten_get_window_title()
+
+  Returns the window title.
+
+  The returned string will be valid until the next call of the function
+
+.. c:function:: void emscripten_set_window_title(char *title)
+
+  Sets the window title.
+
+.. c:function:: void emscripten_get_screen_size(int *width, int *height)
+
+  Returns the width and height of the screen.
+
 .. c:function:: void emscripten_hide_mouse(void)
 
   Hide the OS mouse cursor over the canvas.
@@ -1017,9 +1031,9 @@ Functions
 
   Returns the value of a compiler setting.
 
-  For example, to return the integer representing the value of ``PRECISE_F32`` during compilation: ::
+  For example, to return the integer representing the value of ``INITIAL_MEMORY`` during compilation: ::
 
-    emscripten_get_compiler_setting("PRECISE_F32")
+    emscripten_get_compiler_setting("INITIAL_MEMORY")
 
   For values containing anything other than an integer, a string is returned (you will need to cast the ``int`` return value to a ``char*``).
 

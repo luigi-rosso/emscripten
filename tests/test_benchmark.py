@@ -19,7 +19,7 @@ if __name__ == '__main__':
 import clang_native
 import jsrun
 import runner
-from tools.shared import run_process, path_from_root, SPIDERMONKEY_ENGINE, LLVM_ROOT, V8_ENGINE, PIPE, try_delete, PYTHON, EMCC
+from tools.shared import run_process, path_from_root, SPIDERMONKEY_ENGINE, LLVM_ROOT, V8_ENGINE, PIPE, try_delete, EMCC
 from tools import shared, building
 
 # standard arguments for timing:
@@ -201,7 +201,7 @@ class EmscriptenBenchmarker(Benchmarker):
     final = final.replace('.cpp', '')
     try_delete(final)
     cmd = [
-      PYTHON, EMCC, filename,
+      EMCC, filename,
       OPTIMIZATIONS,
       '-s', 'INITIAL_MEMORY=256MB',
       '-s', 'FILESYSTEM=0',
@@ -828,10 +828,6 @@ class benchmark(runner.RunnerCore):
   @non_core
   def test_fasta_double(self):
     self.fasta('fasta_double', 'double')
-
-  @non_core
-  def test_fasta_double_full(self):
-    self.fasta('fasta_double_full', 'double', emcc_args=['-s', 'DOUBLE_MODE=1'])
 
   def test_skinning(self):
     src = open(path_from_root('tests', 'skinning_test_no_simd.cpp'), 'r').read()

@@ -11,7 +11,7 @@ var WasiLibrary = {
     _exit(code);
   },
 
-  $getEnvStrings__deps: ['$ENV', '_getExecutableName'],
+  $getEnvStrings__deps: ['$ENV', '$getExecutableName'],
   $getEnvStrings: function() {
     if (!getEnvStrings.strings) {
       // Default values.
@@ -29,7 +29,7 @@ var WasiLibrary = {
         'PWD': '/',
         'HOME': '/home/web_user',
         'LANG': lang,
-        '_': __getExecutableName()
+        '_': getExecutableName()
       };
       // Apply the user-provided values, if any.
       for (var x in ENV) {
@@ -160,16 +160,5 @@ var WasiLibrary = {
     return 0;
   },
 };
-
-// Fallback for cases where the wasi_interface_version.name prefixing fails,
-// and we have the full name from C. This happens in fastcomp which
-// lacks the attribute to set the import module and base names.
-if (!WASM_BACKEND) {
-  for (var x in WasiLibrary) {
-    if (isJsLibraryConfigIdentifier(x)) continue;
-    if (isJsOnlyIdentifier(x)) continue;
-    WasiLibrary['__wasi_' + x] = x;
-  }
-}
 
 mergeInto(LibraryManager.library, WasiLibrary);
